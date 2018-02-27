@@ -1,4 +1,4 @@
--- MySQL dump 10.13  Distrib 5.7.17, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.19, for Win64 (x86_64)
 --
 -- Host: localhost    Database: joby_jobs
 -- ------------------------------------------------------
@@ -122,10 +122,11 @@ CREATE TABLE `conversation_messages` (
   `seeker_id` int(11) NOT NULL,
   `employer_id` int(11) NOT NULL,
   `employer_person_id` int(11) NOT NULL,
-  `header` varchar(300) DEFAULT NULL,
+  `header` varchar(300) DEFAULT NULL COMMENT 'NOT USED;',
   `content` longtext,
   `date` datetime NOT NULL,
   `is_read` bit(1) NOT NULL COMMENT 'is read by the other side',
+  `is_unassigned` bit(1) DEFAULT b'1' COMMENT 'holds a value for whether the current message is not assigned to a particular employer person.',
   PRIMARY KEY (`message_id`),
   KEY `worker_id_5_idx` (`seeker_id`),
   KEY `company_person_id_6_idx` (`employer_person_id`),
@@ -275,7 +276,9 @@ CREATE TABLE `extern_cities_languages` (
   `city_id` int(11) NOT NULL,
   `lang_id` int(11) NOT NULL,
   `name` varchar(150) NOT NULL COMMENT 'holds the name of the current city',
-  PRIMARY KEY (`city_id`,`lang_id`)
+  PRIMARY KEY (`city_id`,`lang_id`),
+  KEY `lang_id1_idx` (`lang_id`),
+  CONSTRAINT `lang_id1` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -320,6 +323,7 @@ CREATE TABLE `interviews` (
   `interview_id` int(11) NOT NULL AUTO_INCREMENT,
   `interview_uid` varchar(38) DEFAULT NULL,
   `employer_id` int(11) NOT NULL,
+  `position_id` int(11) DEFAULT NULL,
   `seeker_id` int(11) NOT NULL,
   `invite_date` datetime NOT NULL COMMENT 'Holds the date that the seeker was sent an invitation.',
   `invite_status_id` int(11) NOT NULL,
@@ -332,9 +336,11 @@ CREATE TABLE `interviews` (
   PRIMARY KEY (`interview_id`),
   KEY `employer_id6_idx` (`employer_id`),
   KEY `seeker_id6_idx` (`seeker_id`),
+  KEY `position_id11_idx` (`position_id`),
   CONSTRAINT `employer_id6` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `position_id11` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `seeker_id6` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -352,6 +358,23 @@ CREATE TABLE `languages` (
   `active` bit(1) NOT NULL DEFAULT b'1',
   PRIMARY KEY (`lang_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `position_notifiables`
+--
+
+DROP TABLE IF EXISTS `position_notifiables`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `position_notifiables` (
+  `position_id` int(11) NOT NULL,
+  `employer_person` int(11) NOT NULL,
+  PRIMARY KEY (`position_id`,`employer_person`),
+  KEY `employer_person_id19_idx` (`employer_person`),
+  CONSTRAINT `employer_person_id19` FOREIGN KEY (`employer_person`) REFERENCES `employer_persons` (`employer_person_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `position_id_18` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='holds the notifiable employer persons for a position.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -391,12 +414,12 @@ CREATE TABLE `positions` (
   `salary_max` int(11) NOT NULL,
   `location` varchar(150) CHARACTER SET utf8 NOT NULL,
   `description` longtext CHARACTER SET utf8 NOT NULL,
-  `status_id` int(11) NOT NULL COMMENT 'the status of the position: draft, onair, frozen, deleted.',
+  `status_id` int(11) NOT NULL COMMENT 'the status of the position: draft, onair, frozen, archived.',
   `internal_precedence` int(11) DEFAULT NULL COMMENT 'holds the precedence in the current company (1-based); null is 1;',
   `draft` bit(1) NOT NULL DEFAULT b'0' COMMENT 'specifies whether the position is not yet to be published (draft); NOT USED; ',
   `frozen` bit(1) NOT NULL DEFAULT b'0' COMMENT 'specifies whether the position is frozen (that is not active for searches);  NOT USED; ',
   `active` bit(1) NOT NULL DEFAULT b'1' COMMENT 'specifies whether the position was deleted (logically)',
-  PRIMARY KEY (`position_id`),
+  PRIMARY KEY (`position_id`,`status_id`),
   KEY `employer_id1_idx` (`employer_id`),
   KEY `profession_id1_idx` (`profession_id`),
   CONSTRAINT `employer_id1` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
@@ -449,20 +472,20 @@ CREATE TABLE `reactions` (
   `seeker_id` int(11) NOT NULL,
   `employer_id` int(11) DEFAULT NULL,
   `reaction_type_id` int(11) NOT NULL,
-  `position_id` int(11) DEFAULT NULL,
   `employer_person_id` int(11) DEFAULT NULL,
+  `position_id` int(11) DEFAULT NULL,
   `reaction_disabled` bit(1) DEFAULT b'0' COMMENT 'true means row is disabled,\nfalse or null means otherwise.',
   `last_updated` datetime DEFAULT CURRENT_TIMESTAMP,
   `active` bit(1) DEFAULT b'1',
   PRIMARY KEY (`id`),
   KEY `reaction_type_1_idx` (`reaction_type_id`),
-  KEY `position_id_idx` (`position_id`),
   KEY `employer_id_16_idx` (`employer_id`),
   KEY `employer_person_id_idx` (`employer_person_id`),
   KEY `seeker_id9_idx` (`seeker_id`),
+  KEY `position_id14_idx` (`position_id`),
   CONSTRAINT `employer_id_16` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `employer_person_id` FOREIGN KEY (`employer_person_id`) REFERENCES `employer_persons` (`employer_person_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `position_id` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `position_id14` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `reaction_type_1` FOREIGN KEY (`reaction_type_id`) REFERENCES `reaction_types` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `seeker_id9` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8 COMMENT='reactions: seeker initied likes, employer initiated likes, mutual matches';
@@ -562,7 +585,7 @@ CREATE TABLE `seekers` (
   `work_state` int(11) NOT NULL DEFAULT '0',
   `current_availability_Date` datetime DEFAULT NULL,
   `active` bit(1) NOT NULL DEFAULT b'1',
-  `last_update` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`seeker_id`),
   KEY `user_id2_idx` (`identity_user_id`),
   CONSTRAINT `user_id2` FOREIGN KEY (`identity_user_id`) REFERENCES `users` (`Id`) ON DELETE NO ACTION ON UPDATE NO ACTION
@@ -674,4 +697,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-02-01 17:13:01
+-- Dump completed on 2018-02-12  0:29:37

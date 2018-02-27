@@ -675,7 +675,7 @@ CREATE TABLE `seeker_job_interests` (
   PRIMARY KEY (`id`),
   KEY `seeker_id19_idx` (`seeker_id`),
   CONSTRAINT `seeker_id19` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -695,7 +695,7 @@ CREATE TABLE `seeker_resumes` (
   PRIMARY KEY (`id`),
   KEY `seeker_id7_idx` (`seeker_id`),
   CONSTRAINT `seeker_id7` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8 COMMENT='Holds the physical files of a seeker''s resume (CV)';
+) ENGINE=InnoDB AUTO_INCREMENT=53 DEFAULT CHARSET=utf8 COMMENT='Holds the physical files of a seeker''s resume (CV)';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -728,13 +728,13 @@ CREATE TABLE `seekers` (
   `identity_user_id` varchar(128) NOT NULL,
   `first_name` varchar(150) NOT NULL,
   `last_name` varchar(150) NOT NULL,
-  `phone_number` varchar(50) NOT NULL COMMENT 'NOT RELEVANT; identical column in users table.',
+  `phone_number` varchar(50) DEFAULT NULL COMMENT 'NOT RELEVANT; identical column in users table.',
   `id_number` varchar(50) DEFAULT NULL,
   `email` varchar(150) NOT NULL,
   `register_date` datetime NOT NULL,
   `birth_date` datetime NOT NULL,
   `gender` int(11) NOT NULL,
-  `about_me` longtext NOT NULL,
+  `about_me` longtext,
   `work_state` int(11) NOT NULL DEFAULT '0',
   `current_availability_Date` datetime DEFAULT NULL,
   `avatar` varchar(500) DEFAULT NULL COMMENT 'relative url to the seeker''s avatar image',
@@ -746,7 +746,216 @@ CREATE TABLE `seekers` (
   KEY `lang_id_idx` (`lang_id`),
   CONSTRAINT `lang_id` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `user_id2` FOREIGN KEY (`identity_user_id`) REFERENCES `users` (`Id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=60 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_employer_viewed_seekers`
+--
+
+DROP TABLE IF EXISTS `tmp_employer_viewed_seekers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_employer_viewed_seekers` (
+  `seeker_id` int(10) unsigned NOT NULL,
+  `employer_id` int(10) unsigned NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`seeker_id`,`employer_id`),
+  KEY `employer_id` (`employer_id`),
+  CONSTRAINT `tmp_employer_viewed_seekers_ibfk_1` FOREIGN KEY (`employer_id`) REFERENCES `tmp_employers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `tmp_employer_viewed_seekers_ibfk_2` FOREIGN KEY (`seeker_id`) REFERENCES `tmp_seekers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_employers`
+--
+
+DROP TABLE IF EXISTS `tmp_employers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_employers` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL,
+  `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `tmp_employers_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `tmp_users` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=439 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_interviews`
+--
+
+DROP TABLE IF EXISTS `tmp_interviews`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_interviews` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `date` datetime NOT NULL,
+  `location` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `status` enum('scheduled','cancelled','conducted') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'scheduled',
+  `comments` text COLLATE utf8_unicode_ci,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_job_categories`
+--
+
+DROP TABLE IF EXISTS `tmp_job_categories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_job_categories` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=423 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_job_matches`
+--
+
+DROP TABLE IF EXISTS `tmp_job_matches`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_job_matches` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `seeker_id` int(10) unsigned NOT NULL,
+  `job_id` int(10) unsigned NOT NULL,
+  `interview_id` int(10) unsigned DEFAULT NULL,
+  `employer_like` tinyint(1) NOT NULL DEFAULT '0',
+  `seeker_like` tinyint(1) NOT NULL DEFAULT '0',
+  `status` enum('''summoned''','','','') COLLATE utf8_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `seeker_id` (`seeker_id`,`job_id`),
+  KEY `job_id` (`job_id`),
+  KEY `interview_id` (`interview_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_jobs`
+--
+
+DROP TABLE IF EXISTS `tmp_jobs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_jobs` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `employer_id` int(10) unsigned NOT NULL,
+  `category_id` int(10) unsigned NOT NULL,
+  `title` varchar(150) COLLATE utf8_unicode_ci NOT NULL,
+  `description` text COLLATE utf8_unicode_ci NOT NULL,
+  `requirements` text COLLATE utf8_unicode_ci NOT NULL,
+  `type` enum('full_time','part_time','freelance') COLLATE utf8_unicode_ci NOT NULL,
+  `role` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
+  `location` varchar(120) COLLATE utf8_unicode_ci NOT NULL,
+  `min_salary` int(10) unsigned DEFAULT NULL,
+  `max_salary` int(10) unsigned DEFAULT NULL,
+  `salary_method` enum('monthly','hourly') COLLATE utf8_unicode_ci NOT NULL,
+  `is_draft` tinyint(1) NOT NULL DEFAULT '0',
+  `is_active` tinyint(1) NOT NULL DEFAULT '1',
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  KEY `employer_id` (`employer_id`),
+  KEY `category_id` (`category_id`),
+  CONSTRAINT `tmp_jobs_ibfk_1` FOREIGN KEY (`employer_id`) REFERENCES `tmp_employers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `tmp_jobs_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `tmp_job_categories` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=241 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_seeker_categories`
+--
+
+DROP TABLE IF EXISTS `tmp_seeker_categories`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_seeker_categories` (
+  `seeker_id` int(10) unsigned NOT NULL,
+  `category_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`seeker_id`,`category_id`),
+  KEY `category_id` (`category_id`),
+  CONSTRAINT `tmp_seeker_categories_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `tmp_job_categories` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `tmp_seeker_categories_ibfk_2` FOREIGN KEY (`seeker_id`) REFERENCES `tmp_seekers` (`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_seekers`
+--
+
+DROP TABLE IF EXISTS `tmp_seekers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_seekers` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `user_id` int(10) unsigned NOT NULL,
+  `first_name` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `last_name` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `email` varchar(120) COLLATE utf8_unicode_ci NOT NULL,
+  `phone` varchar(15) COLLATE utf8_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`),
+  CONSTRAINT `tmp_seekers_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `tmp_users` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=181 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='	';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_translations`
+--
+
+DROP TABLE IF EXISTS `tmp_translations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_translations` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `lang` char(2) COLLATE utf8_unicode_ci NOT NULL,
+  `name` varchar(120) COLLATE utf8_unicode_ci NOT NULL,
+  `value` text COLLATE utf8_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `lang` (`lang`,`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=520 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `tmp_users`
+--
+
+DROP TABLE IF EXISTS `tmp_users`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `tmp_users` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `type` enum('employer','seeker') COLLATE utf8_unicode_ci NOT NULL,
+  `username` varchar(120) COLLATE utf8_unicode_ci NOT NULL,
+  `password` char(64) COLLATE utf8_unicode_ci NOT NULL,
+  `access_token` char(64) COLLATE utf8_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`)
+) ENGINE=InnoDB AUTO_INCREMENT=841 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -757,13 +966,17 @@ DROP TABLE IF EXISTS `translations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `translations` (
-  `id` int(10) unsigned NOT NULL,
-  `lang` char(2) COLLATE utf8_unicode_ci NOT NULL,
-  `name` varchar(120) COLLATE utf8_unicode_ci NOT NULL,
-  `value` text COLLATE utf8_unicode_ci NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `lang_id` int(11) NOT NULL,
+  `ui_type` int(11) DEFAULT NULL COMMENT 'Optional: the ui type (button, label, etc.) of the current key pharse. \nNOT USED;',
+  `key` varchar(150) NOT NULL COMMENT 'The key phrase',
+  `value` text NOT NULL COMMENT 'The value',
+  `last_updated` datetime DEFAULT NULL,
+  `active` bit(1) DEFAULT b'1',
+  PRIMARY KEY (`id`),
+  KEY `lang_id_idx` (`lang_id`),
+  CONSTRAINT `lang_id29` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB AUTO_INCREMENT=1027 DEFAULT CHARSET=utf8 COMMENT='Holds phrase translations for all UI portion of the application: buttons, lables, text areas, messages and so on.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -852,4 +1065,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-02-20 11:50:12
+-- Dump completed on 2018-02-27 18:34:32
