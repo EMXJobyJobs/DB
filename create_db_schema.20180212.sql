@@ -1,4 +1,4 @@
--- MySQL dump 10.13  Distrib 5.7.17, for Win64 (x86_64)
+-- MySQL dump 10.13  Distrib 5.7.19, for Win64 (x86_64)
 --
 -- Host: localhost    Database: joby_jobs
 -- ------------------------------------------------------
@@ -39,7 +39,7 @@ CREATE TABLE `admin_person_settings` (
   PRIMARY KEY (`setting_id`),
   UNIQUE KEY `admin_person_id_UNIQUE` (`admin_person_id`),
   CONSTRAINT `admin_person_id_FK` FOREIGN KEY (`admin_person_id`) REFERENCES `admin_persons` (`admin_person_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='General settings for an admin person entity.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -63,6 +63,23 @@ CREATE TABLE `admin_persons` (
   UNIQUE KEY `identity_user_id_UNIQUE` (`identity_user_id`),
   CONSTRAINT `user_id_1` FOREIGN KEY (`identity_user_id`) REFERENCES `users` (`Id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `application_logs`
+--
+
+DROP TABLE IF EXISTS `application_logs`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `application_logs` (
+  `application_id` int(11) NOT NULL,
+  `log_id` int(11) NOT NULL AUTO_INCREMENT COMMENT 'a 1-based counter for the log of an application',
+  `text` varchar(45) DEFAULT NULL,
+  PRIMARY KEY (`log_id`,`application_id`),
+  KEY `application_id_idx` (`application_id`),
+  CONSTRAINT `application_id` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='log records for a job application';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -94,7 +111,6 @@ CREATE TABLE `applications` (
   `position_id` int(11) NOT NULL,
   `status_id` int(11) NOT NULL,
   `application_start_date` datetime NOT NULL,
-  `story` longtext NOT NULL COMMENT 'The story around the current application',
   `watched` bit(1) DEFAULT b'0' COMMENT 'Holds a value for whether the applicaition has been watched by the employer',
   `last_updated` datetime DEFAULT CURRENT_TIMESTAMP,
   `active` bit(1) DEFAULT b'1',
@@ -105,7 +121,7 @@ CREATE TABLE `applications` (
   CONSTRAINT `application_status_id_1` FOREIGN KEY (`status_id`) REFERENCES `application_statuses` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `position_id4` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `seeker_id1` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -116,24 +132,30 @@ DROP TABLE IF EXISTS `conversation_messages`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `conversation_messages` (
-  `message_id` int(11) NOT NULL,
+  `message_id` int(11) NOT NULL AUTO_INCREMENT,
   `message_uid` varchar(38) DEFAULT NULL,
   `message_type` int(11) NOT NULL COMMENT 'The message type: seekertoemployer or employertoseeker.',
   `seeker_id` int(11) NOT NULL,
   `employer_id` int(11) NOT NULL,
-  `employer_person_id` int(11) NOT NULL,
-  `header` varchar(300) DEFAULT NULL,
+  `is_unassigned` bit(1) DEFAULT b'1' COMMENT 'holds a value for whether the current message is not assigned to a particular employer person.',
+  `employer_person_id` int(11) DEFAULT NULL,
+  `position_id` int(11) DEFAULT NULL COMMENT 'NOT USED;',
+  `header` varchar(300) DEFAULT NULL COMMENT 'NOT USED;',
   `content` longtext,
-  `date` datetime NOT NULL,
-  `is_read` bit(1) NOT NULL COMMENT 'is read by the other side',
+  `date` datetime NOT NULL COMMENT 'The time and date of the message',
+  `is_read` bit(1) NOT NULL DEFAULT b'0' COMMENT 'is read by the other side',
+  `is_archived` bit(1) NOT NULL DEFAULT b'0',
+  `active` bit(1) DEFAULT b'1',
   PRIMARY KEY (`message_id`),
   KEY `worker_id_5_idx` (`seeker_id`),
   KEY `company_person_id_6_idx` (`employer_person_id`),
   KEY `company_id_idx` (`employer_id`),
+  KEY `position_id24_idx` (`position_id`),
   CONSTRAINT `employer_id3` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `employer_person_id3` FOREIGN KEY (`employer_person_id`) REFERENCES `employer_persons` (`employer_person_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `position_id24` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `seeker_id3` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Holds conversation (chat) messages between an employer and a job seeker';
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8 COMMENT='Holds conversation (chat) messages between an employer and a job seeker';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -144,15 +166,14 @@ DROP TABLE IF EXISTS `employer_person_settings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `employer_person_settings` (
-  `setting_id` int(11) NOT NULL AUTO_INCREMENT,
   `employer_person_id` int(11) NOT NULL,
   `setting_key` varchar(150) NOT NULL,
   `settings_value` varchar(500) NOT NULL,
   `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`setting_id`),
+  PRIMARY KEY (`setting_key`,`employer_person_id`),
   KEY `employer_person_id4_idx` (`employer_person_id`),
   CONSTRAINT `employer_person_id4` FOREIGN KEY (`employer_person_id`) REFERENCES `employer_persons` (`employer_person_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='General settings for a employer person entity.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -175,16 +196,20 @@ CREATE TABLE `employer_persons` (
   `phone_number` varchar(50) NOT NULL,
   `register_date` datetime NOT NULL,
   `is_initiator` bit(1) NOT NULL DEFAULT b'0' COMMENT 'Whether the current employer person has initiated the addition of the employer to the system.',
+  `lang_id` int(11) DEFAULT NULL COMMENT 'The preferred lang_id of the user (null if main language)',
+  `avatar` varchar(500) DEFAULT NULL COMMENT 'relative url to the employer person''s avatar image',
   `active` bit(1) NOT NULL DEFAULT b'1',
   `last_update` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`employer_person_id`),
   KEY `employer_8_idx` (`employer_id`),
   KEY `employer_department_id2_idx` (`employer_department_id`),
   KEY `user_id_idx` (`identity_user_id`),
+  KEY `lang_id12_idx` (`lang_id`),
   CONSTRAINT `employer_department_id2` FOREIGN KEY (`employer_department_id`) REFERENCES `empoyer_departments` (`department_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `employer_id8` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `lang_id12` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `user_id1` FOREIGN KEY (`identity_user_id`) REFERENCES `users` (`Id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -204,7 +229,24 @@ CREATE TABLE `employer_persons_invites` (
   PRIMARY KEY (`invite_id`),
   KEY `employer_person_id11_idx` (`employer_person_id`),
   CONSTRAINT `employer_person_id11` FOREIGN KEY (`employer_person_id`) REFERENCES `employer_persons` (`employer_person_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `employer_settings`
+--
+
+DROP TABLE IF EXISTS `employer_settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `employer_settings` (
+  `employer_id` int(11) NOT NULL,
+  `setting_key` varchar(150) NOT NULL,
+  `settings_value` varchar(500) NOT NULL,
+  `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`employer_id`,`setting_key`),
+  CONSTRAINT `employer_id29` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='General settings for a employer entity.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -216,12 +258,13 @@ DROP TABLE IF EXISTS `employers`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `employers` (
   `employer_id` int(11) NOT NULL AUTO_INCREMENT,
+  `employer_uid` varchar(38) NOT NULL,
   `name` varchar(150) NOT NULL,
   `address` varchar(500) NOT NULL,
   `phone_number` varchar(150) NOT NULL,
   `contact_person_name` varchar(150) DEFAULT NULL COMMENT 'the main contact person (refereant) in the company. may be null.',
   `contact_person_phone_number` varchar(150) DEFAULT NULL COMMENT 'the phone number of the  main contact person (refereant) in the company. may be null.',
-  `company_hp` varchar(50) DEFAULT NULL COMMENT 'The israeli company id number (h.p)',
+  `employer_hp` varchar(50) DEFAULT NULL COMMENT 'The israeli company id number (h.p) of the employer',
   `join_date` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `logo` varchar(500) NOT NULL COMMENT 'relative url to the company logo',
   `about` text COMMENT 'about the company',
@@ -229,7 +272,7 @@ CREATE TABLE `employers` (
   `active` bit(1) NOT NULL DEFAULT b'1',
   `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`employer_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -242,7 +285,7 @@ DROP TABLE IF EXISTS `empoyer_departments`;
 CREATE TABLE `empoyer_departments` (
   `department_id` int(11) NOT NULL AUTO_INCREMENT,
   `employer_id` int(11) NOT NULL,
-  `department_name` varchar(45) NOT NULL,
+  `department_name` varchar(150) NOT NULL,
   `active` bit(1) NOT NULL DEFAULT b'1',
   PRIMARY KEY (`department_id`),
   KEY `employer_id21_idx` (`employer_id`),
@@ -258,9 +301,29 @@ DROP TABLE IF EXISTS `extern_cities`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `extern_cities` (
-  `Name` varchar(150) NOT NULL,
-  PRIMARY KEY (`Name`)
+  `city_id` int(11) NOT NULL,
+  `name` varchar(150) NOT NULL COMMENT 'holds the name of the current city (in the main language)',
+  `visual_name` varchar(150) NOT NULL,
+  PRIMARY KEY (`city_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Holds external data around cities';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `extern_cities_languages`
+--
+
+DROP TABLE IF EXISTS `extern_cities_languages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `extern_cities_languages` (
+  `city_id` int(11) NOT NULL,
+  `lang_id` int(11) NOT NULL,
+  `visual_name` varchar(150) NOT NULL COMMENT 'holds the name of the current city',
+  PRIMARY KEY (`city_id`,`lang_id`),
+  KEY `lang_id1_idx` (`lang_id`),
+  CONSTRAINT `city_id` FOREIGN KEY (`city_id`) REFERENCES `extern_cities` (`city_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `lang_id1` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='languages extension table for ''extern_cities''';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -276,6 +339,24 @@ CREATE TABLE `fields` (
   `active` bit(1) NOT NULL DEFAULT b'1',
   PRIMARY KEY (`filed_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `fields_languages`
+--
+
+DROP TABLE IF EXISTS `fields_languages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `fields_languages` (
+  `field_id` int(11) NOT NULL,
+  `lang_id` int(11) NOT NULL,
+  `title` varchar(150) NOT NULL,
+  PRIMARY KEY (`field_id`,`lang_id`),
+  KEY `lang_id13_idx` (`lang_id`),
+  CONSTRAINT `field_id16` FOREIGN KEY (`field_id`) REFERENCES `fields` (`filed_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `lang_id13` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='languages extension table for ''fields''';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -304,37 +385,129 @@ CREATE TABLE `interviews` (
   `interview_id` int(11) NOT NULL AUTO_INCREMENT,
   `interview_uid` varchar(38) DEFAULT NULL,
   `employer_id` int(11) NOT NULL,
+  `application_id` int(11) DEFAULT NULL,
   `seeker_id` int(11) NOT NULL,
-  `date` datetime NOT NULL,
+  `invite_date` datetime NOT NULL COMMENT 'Holds the date that the seeker was sent an invitation.',
+  `invite_status_id` int(11) NOT NULL,
+  `invite_cancelReject_reason` varchar(500) DEFAULT NULL,
+  `due_date` datetime NOT NULL,
   `location` varchar(150) NOT NULL,
-  `address` varchar(150) NOT NULL,
   `notes` varchar(9999) DEFAULT NULL,
-  `is_cancelled` bit(1) DEFAULT b'0',
-  `cancel_reason` varchar(150) DEFAULT NULL,
+  `last_updated` datetime DEFAULT CURRENT_TIMESTAMP,
+  `active` bit(1) DEFAULT b'1',
   PRIMARY KEY (`interview_id`),
   KEY `employer_id6_idx` (`employer_id`),
   KEY `seeker_id6_idx` (`seeker_id`),
+  KEY `application_id32_idx` (`application_id`),
+  CONSTRAINT `application_id32` FOREIGN KEY (`application_id`) REFERENCES `applications` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `employer_id6` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `seeker_id6` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `languages`
+--
+
+DROP TABLE IF EXISTS `languages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `languages` (
+  `lang_id` int(11) NOT NULL,
+  `lang_code` varchar(50) NOT NULL,
+  `name` varchar(50) NOT NULL,
+  `visual_name` varchar(150) NOT NULL COMMENT 'The visual name (in the native language)',
+  `active` bit(1) NOT NULL DEFAULT b'1',
+  PRIMARY KEY (`lang_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `position_tags`
+-- Table structure for table `notification_messages`
 --
 
-DROP TABLE IF EXISTS `position_tags`;
+DROP TABLE IF EXISTS `notification_messages`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `position_tags` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
+CREATE TABLE `notification_messages` (
+  `message_id` int(11) NOT NULL,
+  `notification_type_id` int(11) NOT NULL COMMENT 'email, sms or push etc.',
+  `header` varchar(500) DEFAULT NULL COMMENT 'optional: header',
+  `content` longtext NOT NULL COMMENT 'the content',
+  `last_updated` datetime DEFAULT NULL,
+  `active` bit(1) DEFAULT b'1',
+  PRIMARY KEY (`message_id`),
+  KEY `notification_type_id_idx` (`notification_type_id`),
+  CONSTRAINT `notification_type_id` FOREIGN KEY (`notification_type_id`) REFERENCES `notification_types` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Holds data about notification messages: email, sms, push notifications to users.';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `notification_messages_languages`
+--
+
+DROP TABLE IF EXISTS `notification_messages_languages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `notification_messages_languages` (
+  `message_id` int(11) NOT NULL,
+  `lang_id` int(11) NOT NULL,
+  `header` varchar(500) DEFAULT NULL COMMENT 'optional: header',
+  `content` longtext NOT NULL COMMENT 'the content',
+  PRIMARY KEY (`message_id`,`lang_id`),
+  KEY `lang_id12_idx` (`lang_id`),
+  CONSTRAINT `lang_id21` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `message_id` FOREIGN KEY (`message_id`) REFERENCES `notification_messages` (`message_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='languages extension table for ''notification_messages''';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `notification_types`
+--
+
+DROP TABLE IF EXISTS `notification_types`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `notification_types` (
+  `id` int(11) NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `active` bit(1) NOT NULL DEFAULT b'1',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `position_notifiables`
+--
+
+DROP TABLE IF EXISTS `position_notifiables`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `position_notifiables` (
   `position_id` int(11) NOT NULL,
-  `tag_id` varchar(38) NOT NULL COMMENT 'a unique tag id',
-  `precedence` int(11) DEFAULT NULL COMMENT 'the precedence of the current position in the current tag (1-based); null is 1;',
-  PRIMARY KEY (`id`),
-  KEY `position_id1_idx` (`position_id`),
-  CONSTRAINT `position_id1` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='holds all tags for a specific position';
+  `employer_person` int(11) NOT NULL,
+  PRIMARY KEY (`position_id`,`employer_person`),
+  KEY `employer_person_id19_idx` (`employer_person`),
+  CONSTRAINT `employer_person_id19` FOREIGN KEY (`employer_person`) REFERENCES `employer_persons` (`employer_person_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `position_id_18` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='holds the notifiable employer persons for a position.';
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `position_settings`
+--
+
+DROP TABLE IF EXISTS `position_settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `position_settings` (
+  `position_id` int(11) NOT NULL,
+  `setting_key` varchar(150) NOT NULL,
+  `settings_value` varchar(500) NOT NULL,
+  `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`position_id`,`setting_key`),
+  CONSTRAINT `position_id19` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='General settings for a position entity.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -346,25 +519,48 @@ DROP TABLE IF EXISTS `positions`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `positions` (
   `position_id` int(11) NOT NULL AUTO_INCREMENT,
-  `position_uid` varchar(38) COLLATE armscii8_bin DEFAULT NULL,
+  `position_uid` varchar(38) DEFAULT NULL,
   `employer_id` int(11) NOT NULL,
   `position_type` int(11) DEFAULT NULL COMMENT 'The position type (full time, part time, shifts)',
-  `title` varchar(150) CHARACTER SET utf8 NOT NULL,
+  `title` varchar(150) NOT NULL,
   `profession_id` int(11) NOT NULL,
   `subprofession_id` int(11) DEFAULT NULL,
+  `create_date` datetime DEFAULT NULL COMMENT 'The date of the very creation of the position.',
+  `publish_date` datetime DEFAULT NULL COMMENT 'The date of the publishing of the position (state changed to OnAir).',
   `salary_min` int(11) NOT NULL,
   `salary_max` int(11) NOT NULL,
-  `location` varchar(150) CHARACTER SET utf8 NOT NULL,
-  `description` longtext CHARACTER SET utf8 NOT NULL,
-  `status_id` int(11) NOT NULL COMMENT 'the status of the position: draft, onair, frozen, deleted.',
-  `internal_precedence` int(11) DEFAULT NULL COMMENT 'holds the precedence in the current company (1-based); null is 1;',
-  `draft` bit(1) NOT NULL DEFAULT b'0' COMMENT 'specifies whether the position is not yet to be published (draft); NOT USED; ',
-  `frozen` bit(1) NOT NULL DEFAULT b'0' COMMENT 'specifies whether the position is frozen (that is not active for searches);  NOT USED; ',
-  `active` bit(1) NOT NULL DEFAULT b'1' COMMENT 'specifies whether the position was deleted (logically)',
+  `location` varchar(150) NOT NULL,
+  `description` longtext NOT NULL,
+  `status_id` int(11) NOT NULL COMMENT 'the status of the position: draft, onair, frozen, archived.',
+  `rank` int(11) DEFAULT NULL COMMENT 'an ascending rank that specifies the indexing in searches (1=normal); null is 1;',
+  `last_updated` datetime DEFAULT NULL,
+  `active` bit(1) DEFAULT b'1' COMMENT 'specifies whether the position was deleted (logically)',
   PRIMARY KEY (`position_id`),
   KEY `employer_id1_idx` (`employer_id`),
-  CONSTRAINT `employer_id1` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=armscii8 COLLATE=armscii8_bin;
+  KEY `profession_id1_idx` (`profession_id`),
+  CONSTRAINT `employer_id1` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `profession_id1` FOREIGN KEY (`profession_id`) REFERENCES `professions` (`profession_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `positions_languages`
+--
+
+DROP TABLE IF EXISTS `positions_languages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `positions_languages` (
+  `position_id` int(11) NOT NULL,
+  `lang_id` int(11) NOT NULL,
+  `title` varchar(150) NOT NULL,
+  `location` varchar(150) NOT NULL,
+  `description` longtext NOT NULL,
+  PRIMARY KEY (`position_id`,`lang_id`),
+  KEY `lang_id11_idx` (`lang_id`),
+  CONSTRAINT `lang_id11` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `position_id31` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='languages extension table for ''positions''';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -382,7 +578,25 @@ CREATE TABLE `professions` (
   PRIMARY KEY (`profession_id`),
   KEY `field_id1_idx` (`field_id`),
   CONSTRAINT `field_id1` FOREIGN KEY (`field_id`) REFERENCES `fields` (`filed_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB AUTO_INCREMENT=107 DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=1007 DEFAULT CHARSET=utf8;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `professions_languages`
+--
+
+DROP TABLE IF EXISTS `professions_languages`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `professions_languages` (
+  `profession_id` int(11) NOT NULL,
+  `lang_id` int(11) NOT NULL,
+  `title` varchar(150) NOT NULL,
+  PRIMARY KEY (`profession_id`,`lang_id`),
+  KEY `lang_id19_idx` (`lang_id`),
+  CONSTRAINT `lang_id19` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `profession_id17` FOREIGN KEY (`profession_id`) REFERENCES `professions` (`profession_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='languages extension table for ''professions''';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -412,19 +626,20 @@ CREATE TABLE `reactions` (
   `seeker_id` int(11) NOT NULL,
   `employer_id` int(11) DEFAULT NULL,
   `reaction_type_id` int(11) NOT NULL,
-  `active` bit(1) NOT NULL DEFAULT b'1',
-  `position_id` int(11) DEFAULT NULL,
   `employer_person_id` int(11) DEFAULT NULL,
-  `disabled` bit(1) DEFAULT b'0' COMMENT 'true means row is disabled,\nfalse or null means otherwise.',
+  `position_id` int(11) DEFAULT NULL,
+  `reaction_disabled` bit(1) DEFAULT b'0' COMMENT 'true means row is disabled,\nfalse or null means otherwise.',
+  `last_updated` datetime DEFAULT CURRENT_TIMESTAMP,
+  `active` bit(1) DEFAULT b'1',
   PRIMARY KEY (`id`),
   KEY `reaction_type_1_idx` (`reaction_type_id`),
-  KEY `position_id_idx` (`position_id`),
   KEY `employer_id_16_idx` (`employer_id`),
   KEY `employer_person_id_idx` (`employer_person_id`),
   KEY `seeker_id9_idx` (`seeker_id`),
+  KEY `position_id14_idx` (`position_id`),
   CONSTRAINT `employer_id_16` FOREIGN KEY (`employer_id`) REFERENCES `employers` (`employer_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `employer_person_id` FOREIGN KEY (`employer_person_id`) REFERENCES `employer_persons` (`employer_person_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  CONSTRAINT `position_id` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  CONSTRAINT `position_id14` FOREIGN KEY (`position_id`) REFERENCES `positions` (`position_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `reaction_type_1` FOREIGN KEY (`reaction_type_id`) REFERENCES `reaction_types` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `seeker_id9` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='reactions: seeker initied likes, employer initiated likes, mutual matches';
@@ -452,15 +667,15 @@ DROP TABLE IF EXISTS `seeker_job_interests`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `seeker_job_interests` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `seeker_id` int(11) NOT NULL,
-  `file` varchar(500) NOT NULL,
-  `date` datetime NOT NULL,
-  `active` bit(1) NOT NULL DEFAULT b'1',
+  `salary_min` int(11) DEFAULT NULL,
+  `location_cities` varchar(500) DEFAULT NULL,
+  `distance` int(11) DEFAULT NULL COMMENT 'Holds the distance (in km) from home',
   PRIMARY KEY (`id`),
-  KEY `seeker_id9_idx` (`seeker_id`),
+  KEY `seeker_id19_idx` (`seeker_id`),
   CONSTRAINT `seeker_id19` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='seeker settings: that includes worker preferences, job requirements, and general info.';
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -471,15 +686,16 @@ DROP TABLE IF EXISTS `seeker_resumes`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `seeker_resumes` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `seeker_id` int(11) NOT NULL,
-  `file` varchar(500) NOT NULL,
-  `date` datetime NOT NULL,
+  `cv_file` varchar(500) DEFAULT NULL,
+  `cv_upload_date` datetime DEFAULT NULL,
+  `last_updated` datetime DEFAULT CURRENT_TIMESTAMP,
   `active` bit(1) NOT NULL DEFAULT b'1',
   PRIMARY KEY (`id`),
   KEY `seeker_id7_idx` (`seeker_id`),
   CONSTRAINT `seeker_id7` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Represents the physical files of a seeker''s resume';
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8 COMMENT='Holds the physical files of a seeker''s resume (CV)';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -490,15 +706,14 @@ DROP TABLE IF EXISTS `seeker_settings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `seeker_settings` (
-  `setting_id` int(11) NOT NULL AUTO_INCREMENT,
   `seeker_id` int(11) NOT NULL,
   `setting_key` varchar(150) NOT NULL,
   `settings_value` varchar(500) NOT NULL,
   `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`setting_id`),
+  PRIMARY KEY (`seeker_id`,`setting_key`),
   KEY `seeker_id13_idx` (`seeker_id`),
   CONSTRAINT `seeker_id13` FOREIGN KEY (`seeker_id`) REFERENCES `seekers` (`seeker_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='seeker(candidate)  settings: that includes worker preferences, job requirements, and general info.';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='General settings for a seeker entity.\nthat includes seeker preferences, job requirements, and general info.';
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -517,32 +732,38 @@ CREATE TABLE `seekers` (
   `id_number` varchar(50) DEFAULT NULL,
   `email` varchar(150) NOT NULL,
   `register_date` datetime NOT NULL,
+  `birth_date` datetime NOT NULL,
   `gender` int(11) NOT NULL,
+  `about_me` longtext NOT NULL,
+  `work_state` int(11) NOT NULL DEFAULT '0',
+  `current_availability_Date` datetime DEFAULT NULL,
+  `avatar` varchar(500) DEFAULT NULL COMMENT 'relative url to the seeker''s avatar image',
+  `lang_id` int(11) DEFAULT NULL COMMENT 'The preferred lang_id of the user (null if main language)',
   `active` bit(1) NOT NULL DEFAULT b'1',
-  `last_update` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_updated` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`seeker_id`),
   KEY `user_id2_idx` (`identity_user_id`),
+  KEY `lang_id_idx` (`lang_id`),
+  CONSTRAINT `lang_id` FOREIGN KEY (`lang_id`) REFERENCES `languages` (`lang_id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
   CONSTRAINT `user_id2` FOREIGN KEY (`identity_user_id`) REFERENCES `users` (`Id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Table structure for table `subprofessions`
+-- Table structure for table `translations`
 --
 
-DROP TABLE IF EXISTS `subprofessions`;
+DROP TABLE IF EXISTS `translations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `subprofessions` (
-  `subprofession_id` int(11) NOT NULL AUTO_INCREMENT,
-  `profession_id` int(11) NOT NULL,
-  `title` varchar(150) NOT NULL,
-  `tag_id` varchar(38) NOT NULL COMMENT 'a unique tag id for search purposes',
-  `active` bit(1) NOT NULL DEFAULT b'1',
-  PRIMARY KEY (`subprofession_id`),
-  KEY `profession_id_idx` (`profession_id`),
-  CONSTRAINT `profession_id` FOREIGN KEY (`profession_id`) REFERENCES `professions` (`profession_id`) ON DELETE NO ACTION ON UPDATE NO ACTION
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+CREATE TABLE `translations` (
+  `id` int(10) unsigned NOT NULL,
+  `lang` char(2) COLLATE utf8_unicode_ci NOT NULL,
+  `name` varchar(120) COLLATE utf8_unicode_ci NOT NULL,
+  `value` text COLLATE utf8_unicode_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -631,4 +852,4 @@ CREATE TABLE `users` (
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-01-24 18:21:23
+-- Dump completed on 2018-02-20 11:50:12
